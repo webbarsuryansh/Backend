@@ -23,7 +23,11 @@ validateEnv();
 const app = express();
 if (process.env.TRUST_PROXY) app.set('trust proxy', Number(process.env.TRUST_PROXY) || 1);
 app.use(helmet());
-app.use(cors({ origin: env.clientOrigins, credentials: true }));
+const isAllowedOrigin = (origin) =>
+  !origin ||
+  env.clientOrigins.includes(origin) ||
+  /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin);
+app.use(cors({ origin: (origin, callback) => callback(null, isAllowedOrigin(origin)), credentials: true }));
 app.use(express.json({ limit: '1mb' }));
 app.use('/api', apiLimiter);
 
