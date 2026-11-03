@@ -39,14 +39,21 @@ app.use('/api/uploads', uploadRoutes);
 app.use(notFound);
 app.use(errorHandler);
 
-const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: env.clientOrigins, credentials: true }, maxHttpBufferSize: 1e6 });
-registerSocket(io);
+export default app;
 
-await connectDB();
-await Promise.all([seedAgents(), seedModels()]);
-server.listen(env.port, () => console.log(`[server] http://localhost:${env.port}`));
+if (process.env.VERCEL) {
+  await connectDB();
+  await Promise.all([seedAgents(), seedModels()]);
+} else {
+  const server = http.createServer(app);
+  const io = new Server(server, { cors: { origin: env.clientOrigins, credentials: true }, maxHttpBufferSize: 1e6 });
+  registerSocket(io);
 
-const shutdown = () => { io.close(); server.close(() => process.exit(0)); setTimeout(() => process.exit(1), 5000).unref(); };
-process.on('SIGINT', shutdown);
-process.on('SIGTERM', shutdown);
+  await connectDB();
+  await Promise.all([seedAgents(), seedModels()]);
+  server.listen(env.port, () => console.log(`[server] http://localhost:${env.port}`));
+
+  const shutdown = () => { io.close(); server.close(() => process.exit(0)); setTimeout(() => process.exit(1), 5000).unref(); };
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
+}
